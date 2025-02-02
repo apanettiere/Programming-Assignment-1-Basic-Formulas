@@ -53,11 +53,9 @@ movie* parse_line(char* line) {
     year = atoi(token);
 
     token = strtok(NULL, ",");
-    token = strtok(token, "[]");
-    while (token != NULL && lang_index < 5) {
-        if (strcmp(token, ";") != 0) {
-            strcpy(languages[lang_index++], token);
-        }
+    token = strtok(token + 1, ";]"); // Adjusted to skip '['
+    while (token && lang_index < 5) {
+        strcpy(languages[lang_index++], token);
         token = strtok(NULL, ";]");
     }
 
@@ -79,6 +77,7 @@ movie* load_movies(char* filename) {
 
     fgets(buffer, 1024, file); // Skip the header line
     while (fgets(buffer, 1024, file)) {
+        buffer[strcspn(buffer, "\n")] = 0; // Remove newline character
         movie* new_movie = parse_line(buffer);
         insert_movie(&head, new_movie);
         count++;
@@ -90,7 +89,7 @@ movie* load_movies(char* filename) {
 
 void show_movies_by_year(movie* head, int year) {
     int found = 0;
-    while (head != NULL) {
+    while (head) {
         if (head->year == year) {
             printf("%s\n", head->title);
             found = 1;
@@ -107,15 +106,9 @@ void show_highest_rated_movies(movie* head) {
         int year;
         double rating;
         char title[256];
-    } best_movies[122]; // Assuming range from 1900 to 2021
-    int i;
-    for (i = 0; i < 122; i++) {
-        best_movies[i].year = 1900 + i;
-        best_movies[i].rating = 0.0;
-        strcpy(best_movies[i].title, "");
-    }
+    } best_movies[122] = {0}; // Assuming range from 1900 to 2021
 
-    while (head != NULL) {
+    while (head) {
         int index = head->year - 1900;
         if (head->rating > best_movies[index].rating) {
             best_movies[index].rating = head->rating;
@@ -124,16 +117,16 @@ void show_highest_rated_movies(movie* head) {
         head = head->next;
     }
 
-    for (i = 0; i < 122; i++) {
+    for (int i = 0; i < 122; i++) {
         if (best_movies[i].rating != 0) {
-            printf("%d %.1f %s\n", best_movies[i].year, best_movies[i].rating, best_movies[i].title);
+            printf("%d %.1f %s\n", 1900 + i, best_movies[i].rating, best_movies[i].title);
         }
     }
 }
 
 void show_movies_by_language(movie* head, char* language) {
     int found = 0;
-    while (head != NULL) {
+    while (head) {
         for (int i = 0; i < 5; i++) {
             if (strcmp(head->languages[i], language) == 0) {
                 printf("%d %s\n", head->year, head->title);
@@ -149,7 +142,7 @@ void show_movies_by_language(movie* head, char* language) {
 }
 
 void free_movies(movie* head) {
-    while (head != NULL) {
+    while (head) {
         movie* temp = head;
         head = head->next;
         free(temp);
@@ -158,7 +151,7 @@ void free_movies(movie* head) {
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        printf("Usage: %s <filename>\n", argv[0]);
+        fprintf(stderr, "Usage: %s <filename>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
@@ -167,14 +160,12 @@ int main(int argc, char* argv[]) {
         return EXIT_FAILURE;
     }
 
-    int choice, year;
-    char language[21];
-
+    int choice;
     do {
         printf("\n1. Show movies released in the specified year\n");
         printf("2. Show highest rated movie for each year\n");
         printf("3. Show the title and year of release of all movies in a specific language\n");
-        printf("4. Exit from the program\n\n");
+        printf("4. Exit from the program\n");
         printf("Enter a choice from 1 to 4: ");
         scanf("%d", &choice);
 
@@ -204,3 +195,4 @@ int main(int argc, char* argv[]) {
     free_movies(head);
     return EXIT_SUCCESS;
 }
+
