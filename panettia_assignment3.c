@@ -10,6 +10,7 @@
 #define MAX_FILENAME_LEN 256
 #define MAX_LINE_LEN 1024
 
+// Function prototypes
 void pickLargestFile();
 void pickSmallestFile();
 void pickFileByName();
@@ -162,23 +163,18 @@ void createDirectoryAndProcessMovies(const char* filename) {
     int random_number = rand() % 100000;
     
     sprintf(directoryName, "your_onid.movies.%d", random_number);
-    mkdir(directoryName, 0750); // Permissions: rwxr-x---
+    mkdir(directoryName, 0750);
     printf("Created directory with name %s\n", directoryName);
 
-    // Skip header line
-    fgets(line, sizeof(line), file);
+    fgets(line, sizeof(line), file); // Skip header line
 
-    // Process each line
     while (fgets(line, sizeof(line), file)) {
-        // Extract title and year (assumes CSV format: Title,Year,Languages,Rating)
         sscanf(line, "%255[^,],%d", title, &year);
 
-        // Create filename for year
         char filePath[150];
         sprintf(filePath, "%s/%d.txt", directoryName, year);
-        
-        // Write movie title to the corresponding year file
-        FILE *yearFile = fopen(filePath, "a"); // Append mode
+
+        FILE *yearFile = fopen(filePath, "a");
         if (yearFile) {
             fprintf(yearFile, "%s\n", title);
             fclose(yearFile);
@@ -186,7 +182,6 @@ void createDirectoryAndProcessMovies(const char* filename) {
             perror("Error writing to year file");
         }
 
-        // Set permissions: rw-r-----
         chmod(filePath, 0640);
     }
 
