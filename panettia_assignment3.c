@@ -17,7 +17,7 @@
 struct movie {
     char *title;
     int year;
-    struct movie *next;  // Linked list structure
+    struct movie *next;
 };
 
 // Global pointer to head of linked list
@@ -216,11 +216,10 @@ void createDirectoryAndProcessMovies(const char* filename) {
         if (yearFile) {
             fprintf(yearFile, "%s\n", movies[i]->title);
             fclose(yearFile);
+            chmod(filePath, 0640);  // FIXED: Permissions set **after** file is created
         } else {
             perror("Error writing to year file");
         }
-
-        chmod(filePath, 0640);
     }
 
     // Free allocated memory
@@ -232,4 +231,5 @@ void createDirectoryAndProcessMovies(const char* filename) {
         temp = next;
     }
 }
+
 
