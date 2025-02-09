@@ -1,7 +1,9 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
-#include <dirent.h>
 #include <string.h>
+#include <stdbool.h>
+#include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
@@ -9,6 +11,17 @@
 
 #define MAX_FILENAME_LEN 256
 #define MAX_LINE_LEN 1024
+#define MAX_NUM_MOVIES 1000
+
+// Struct for storing movies
+struct movie {
+    char *title;
+    int year;
+    struct movie *next;  // Linked list structure
+};
+
+// Global pointer to head of linked list
+struct movie *head = NULL;
 
 // Function prototypes
 void pickLargestFile();
@@ -168,15 +181,40 @@ void createDirectoryAndProcessMovies(const char* filename) {
 
     fgets(line, sizeof(line), file); // Skip header line
 
+    struct movie *movies[MAX_NUM_MOVIES] = {NULL};
+    int movieCount = 0;
+
     while (fgets(line, sizeof(line), file)) {
         sscanf(line, "%255[^,],%d", title, &year);
 
+        struct movie *newMovie = malloc(sizeof(struct movie));
+        newMovie->title = strdup(title);
+        newMovie->year = year;
+        newMovie->next = NULL;
+
+        if (head == NULL) {
+            head = newMovie;
+        } else {
+            struct movie *temp = head;
+            while (temp->next != NULL) {
+                temp = temp->next;
+            }
+            temp->next = newMovie;
+        }
+
+        movies[movieCount++] = newMovie;
+    }
+
+    fclose(file);
+
+    // Create year-based files
+    for (int i = 0; i < movieCount; i++) {
         char filePath[150];
-        sprintf(filePath, "%s/%d.txt", directoryName, year);
+        sprintf(filePath, "%s/%d.txt", directoryName, movies[i]->year);
 
         FILE *yearFile = fopen(filePath, "a");
         if (yearFile) {
-            fprintf(yearFile, "%s\n", title);
+            fprintf(yearFile, "%s\n", movies[i]->title);
             fclose(yearFile);
         } else {
             perror("Error writing to year file");
@@ -185,6 +223,13 @@ void createDirectoryAndProcessMovies(const char* filename) {
         chmod(filePath, 0640);
     }
 
-    fclose(file);
+    // Free allocated memory
+    struct movie *temp = head;
+    while (temp != NULL) {
+        struct movie *next = temp->next;
+        free(temp->title);
+        free(temp);
+        temp = next;
+    }
 }
 
