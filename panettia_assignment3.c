@@ -11,17 +11,6 @@
 
 #define MAX_FILENAME_LEN 256
 #define MAX_LINE_LEN 1024
-#define MAX_NUM_MOVIES 1000
-
-// Struct for storing movies
-struct movie {
-    char *title;
-    int year;
-    struct movie *next;
-};
-
-// Global pointer to head of linked list
-struct movie *head = NULL;
 
 // Function prototypes
 void pickLargestFile();
@@ -35,36 +24,37 @@ int main() {
 
     do {
         printf("\n1. Select file to process\n");
-        printf("2. Exit the program\n");
-        printf("Enter a choice (1 or 2): ");
+        printf("2. Exit the program\n\n");
+        printf("Enter a choice 1 or 2: ");
         scanf("%d", &choice);
 
         switch (choice) {
-            case 1:
-                printf("\nWhich file do you want to process?\n");
-                printf("Enter 1 to pick the largest file\n");
-                printf("Enter 2 to pick the smallest file\n");
-                printf("Enter 3 to specify the name of a file\n");
-                printf("Enter a choice from 1 to 3: ");
-                
+            case 1: {
                 int fileChoice;
-                scanf("%d", &fileChoice);
+                do {
+                    printf("\nWhich file you want to process?\n");
+                    printf("Enter 1 to pick the largest file\n");
+                    printf("Enter 2 to pick the smallest file\n");
+                    printf("Enter 3 to specify the name of a file\n\n");
+                    printf("Enter a choice from 1 to 3: ");
+                    scanf("%d", &fileChoice);
 
-                switch (fileChoice) {
-                    case 1:
-                        pickLargestFile();
-                        break;
-                    case 2:
-                        pickSmallestFile();
-                        break;
-                    case 3:
-                        pickFileByName();
-                        break;
-                    default:
-                        printf("You entered an incorrect choice. Try again.\n");
-                        break;
-                }
+                    switch (fileChoice) {
+                        case 1:
+                            pickLargestFile();
+                            break;
+                        case 2:
+                            pickSmallestFile();
+                            break;
+                        case 3:
+                            pickFileByName();
+                            break;
+                        default:
+                            printf("You entered an incorrect choice. Try again.\n");
+                    }
+                } while (fileChoice < 1 || fileChoice > 3);
                 break;
+            }
 
             case 2:
                 printf("Exiting the program.\n");
@@ -72,7 +62,6 @@ int main() {
 
             default:
                 printf("You entered an incorrect choice. Try again.\n");
-                break;
         }
     } while (choice != 2);
 
@@ -143,14 +132,17 @@ void pickSmallestFile() {
 void pickFileByName() {
     char filename[MAX_FILENAME_LEN];
 
-    printf("Enter the complete file name: ");
-    scanf("%s", filename);
+    while (1) {
+        printf("Enter the complete file name: ");
+        scanf("%s", filename);
 
-    if (access(filename, F_OK) != -1) {
-        printf("Now processing the chosen file named %s\n", filename);
-        processFile(filename);
-    } else {
-        printf("The file %s was not found. Try again.\n", filename);
+        if (access(filename, F_OK) != -1) {
+            printf("Now processing the chosen file named %s\n", filename);
+            processFile(filename);
+            break;
+        } else {
+            printf("The file %s was not found. Try again\n\n", filename);
+        }
     }
 }
 
@@ -173,63 +165,35 @@ void createDirectoryAndProcessMovies(const char* filename) {
     char title[256];
     char directoryName[128];
     srand(time(NULL));
-    int random_number = rand() % 100000;
-    
-    sprintf(directoryName, "your_onid.movies.%d", random_number);
+
+    int random_number;
+    do {
+        random_number = rand() % 100000;
+        snprintf(directoryName, sizeof(directoryName), "your_onid.movies.%d", random_number);
+    } while (access(directoryName, F_OK) == 0);
+
     mkdir(directoryName, 0750);
-    printf("Created directory with name %s\n", directoryName);
+    printf("Created directory with name %s\n\n", directoryName);
 
     fgets(line, sizeof(line), file); // Skip header line
-
-    struct movie *movies[MAX_NUM_MOVIES] = {NULL};
-    int movieCount = 0;
 
     while (fgets(line, sizeof(line), file)) {
         sscanf(line, "%255[^,],%d", title, &year);
 
-        struct movie *newMovie = malloc(sizeof(struct movie));
-        newMovie->title = strdup(title);
-        newMovie->year = year;
-        newMovie->next = NULL;
-
-        if (head == NULL) {
-            head = newMovie;
-        } else {
-            struct movie *temp = head;
-            while (temp->next != NULL) {
-                temp = temp->next;
-            }
-            temp->next = newMovie;
-        }
-
-        movies[movieCount++] = newMovie;
-    }
-
-    fclose(file);
-
-    // Create year-based files
-    for (int i = 0; i < movieCount; i++) {
         char filePath[150];
-        sprintf(filePath, "%s/%d.txt", directoryName, movies[i]->year);
+        snprintf(filePath, sizeof(filePath), "%s/%d.txt", directoryName, year);
 
         FILE *yearFile = fopen(filePath, "a");
         if (yearFile) {
-            fprintf(yearFile, "%s\n", movies[i]->title);
+            fprintf(yearFile, "%s\n", title);
             fclose(yearFile);
-            chmod(filePath, 0640);  // FIXED: Permissions set **after** file is created
+            chmod(filePath, 0640); // Ensures correct file permissions
         } else {
             perror("Error writing to year file");
         }
     }
 
-    // Free allocated memory
-    struct movie *temp = head;
-    while (temp != NULL) {
-        struct movie *next = temp->next;
-        free(temp->title);
-        free(temp);
-        temp = next;
-    }
+    fclose(file);
 }
 
 
